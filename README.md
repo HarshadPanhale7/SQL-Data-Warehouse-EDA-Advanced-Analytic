@@ -96,7 +96,6 @@ The dataset consists of three tables (stored as flat files in the `datasets/` fo
 - **Customer segmentation** – approximately X% VIP, Y% Regular, Z% New (script 10).
 - **Product performance** – high‑performers (>50k sales) dominate 60% of revenue (script 13).
 
-*These are examples – replace with your actual findings after running the scripts.*
 
 ---
 
