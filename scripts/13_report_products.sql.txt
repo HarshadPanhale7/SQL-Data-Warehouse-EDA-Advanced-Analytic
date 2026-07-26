@@ -1,0 +1,138 @@
+/*
+============================================================
+13_report_products.sql
+Purpose: Build a 360° product report with revenue segmentation and KPIs.
+         Also creates a view for easy access.
+============================================================
+*/
+
+--USE YourDatabaseName;
+
+-- Step 1: Base query
+WITH first_cte AS (
+    SELECT
+        p.product_key,
+        product_name,
+        category,
+        subcategory,
+        cost,
+        order_number,
+        sales_amount,
+        quantity,
+        customer_key,
+        order_date
+    FROM fact_sales f
+    LEFT JOIN dim_products p ON f.product_key = p.product_key
+    WHERE order_date IS NOT NULL
+),
+-- Step 2: Aggregated product measures
+second_cte AS (
+    SELECT
+        product_key,
+        product_name,
+        category,
+        subcategory,
+        cost,
+        SUM(sales_amount) AS total_sales,
+        COUNT(DISTINCT order_number) AS total_orders,
+        SUM(quantity) AS total_quantity,
+        COUNT(DISTINCT customer_key) AS total_customers,
+        MAX(order_date) AS last_sale_date,
+        DATEDIFF(MONTH, MIN(order_date), MAX(order_date)) AS lifespan
+    FROM first_cte
+    GROUP BY product_key, product_name, category, subcategory, cost
+)
+-- Step 3: Add revenue segmentation and KPIs
+SELECT
+    product_key,
+    product_name,
+    category,
+    subcategory,
+    cost,
+    total_sales,
+    CASE
+        WHEN total_sales > 50000 THEN 'HIGH_PERFORMER_PRODUCT'
+        WHEN total_sales BETWEEN 10000 AND 50000 THEN 'MID_PERFORMER_PRODUCT'
+        ELSE 'LOW_PERFORMER_PRODUCT'
+    END AS revenue_segmentation,
+    total_orders,
+    CASE
+        WHEN total_orders = 0 THEN 0
+        ELSE total_sales / total_orders
+    END AS Average_order_revenue,
+    CASE
+        WHEN lifespan = 0 THEN total_sales
+        ELSE total_sales / lifespan
+    END AS Average_monthly_revenue,
+    total_quantity,
+    total_customers,
+    last_sale_date,
+    DATEDIFF(MONTH, last_sale_date, GETDATE()) AS Recency,
+    lifespan
+FROM second_cte
+ORDER BY total_sales DESC;
+
+-- Create a view for the product report
+CREATE VIEW selfmade_product_report AS
+WITH first_cte AS (
+    SELECT
+        p.product_key,
+        product_name,
+        category,
+        subcategory,
+        cost,
+        order_number,
+        sales_amount,
+        quantity,
+        customer_key,
+        order_date
+    FROM fact_sales f
+    LEFT JOIN dim_products p ON f.product_key = p.product_key
+    WHERE order_date IS NOT NULL
+),
+second_cte AS (
+    SELECT
+        product_key,
+        product_name,
+        category,
+        subcategory,
+        cost,
+        SUM(sales_amount) AS total_sales,
+        COUNT(DISTINCT order_number) AS total_orders,
+        SUM(quantity) AS total_quantity,
+        COUNT(DISTINCT customer_key) AS total_customers,
+        MAX(order_date) AS last_sale_date,
+        DATEDIFF(MONTH, MIN(order_date), MAX(order_date)) AS lifespan
+    FROM first_cte
+    GROUP BY product_key, product_name, category, subcategory, cost
+)
+SELECT
+    product_key,
+    product_name,
+    category,
+    subcategory,
+    cost,
+    total_sales,
+    CASE
+        WHEN total_sales > 50000 THEN 'HIGH_PERFORMER_PRODUCT'
+        WHEN total_sales BETWEEN 10000 AND 50000 THEN 'MID_PERFORMER_PRODUCT'
+        ELSE 'LOW_PERFORMER_PRODUCT'
+    END AS revenue_segmentation,
+    total_orders,
+    CASE
+        WHEN total_orders = 0 THEN 0
+        ELSE total_sales / total_orders
+    END AS Average_order_revenue,
+    CASE
+        WHEN lifespan = 0 THEN total_sales
+        ELSE total_sales / lifespan
+    END AS Average_monthly_revenue,
+    total_quantity,
+    total_customers,
+    last_sale_date,
+    DATEDIFF(MONTH, last_sale_date, GETDATE()) AS Recency,
+    lifespan
+FROM second_cte;
+
+-- Test the view
+SELECT * FROM selfmade_product_report;

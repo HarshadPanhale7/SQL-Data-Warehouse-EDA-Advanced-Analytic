@@ -1,0 +1,55 @@
+/*
+============================================================
+10_data_segmentation.sql
+Purpose: Segment products by cost range and customers by spending behaviour.
+============================================================
+*/
+
+--USE YourDatabaseName;
+
+-- Product cost range segmentation
+WITH product_segment AS (
+    SELECT
+        product_key,
+        product_name,
+        cost,
+        CASE WHEN cost < 100 THEN 'BELOW 100'
+             WHEN cost BETWEEN 100 AND 500 THEN '100 - 500'
+             WHEN cost BETWEEN 500 AND 1000 THEN '500 - 1000'
+             ELSE 'ABOVE 1000'
+        END AS cost_ranges
+    FROM dim_products
+)
+SELECT
+    COUNT(product_key) AS Total_products,
+    cost_ranges
+FROM product_segment
+GROUP BY cost_ranges
+ORDER BY Total_products DESC;
+
+-- Customer segmentation by spending behaviour
+WITH spending_segment AS (
+    SELECT
+        dc.customer_key,
+        SUM(sales_amount) AS Total_sales,
+        MIN(order_date) AS First_order,
+        MAX(order_date) AS Last_order,
+        DATEDIFF(MONTH, MIN(order_date), MAX(order_date)) AS Lifespan
+    FROM dim_customers dc
+    LEFT JOIN fact_sales fs ON dc.customer_key = fs.customer_key
+    GROUP BY dc.customer_key
+)
+SELECT
+    Segmentation,
+    COUNT(customer_key) AS Total_cus_in_each_segment
+FROM (
+    SELECT
+        customer_key,
+        CASE WHEN Total_sales > 5000 AND Lifespan >= 12 THEN 'VIP_CUSTOMER'
+             WHEN Total_sales <= 5000 AND Lifespan >= 12 THEN 'REGULAR_CUSTOMER'
+             ELSE 'NEW_CUSTOMER'
+        END AS Segmentation
+    FROM spending_segment
+) t
+GROUP BY Segmentation
+ORDER BY Total_cus_in_each_segment DESC;

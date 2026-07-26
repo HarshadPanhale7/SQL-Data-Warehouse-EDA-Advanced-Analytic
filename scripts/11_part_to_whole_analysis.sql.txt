@@ -1,0 +1,24 @@
+/*
+============================================================
+11_part_to_whole_analysis.sql
+Purpose: Calculate each product category's contribution to total sales (%).
+============================================================
+*/
+
+--USE YourDatabaseName;
+
+WITH cat_contri AS (
+    SELECT
+        category,
+        SUM(sales_amount) AS Total_sales
+    FROM fact_sales AS fs
+    LEFT JOIN dim_products AS dp ON dp.product_key = fs.product_key
+    GROUP BY category
+)
+SELECT
+    category,
+    Total_sales,
+    SUM(Total_sales) OVER() AS Overall_sales,
+    CONCAT(ROUND(CAST(Total_sales AS FLOAT) / SUM(Total_sales) OVER() * 100, 2), '%') AS Contribution
+FROM cat_contri
+ORDER BY Total_sales DESC;

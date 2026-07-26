@@ -1,0 +1,23 @@
+/*
+============================================================
+03_date_range_exploration.sql
+Purpose: Understand the date range of orders and customer age.
+============================================================
+*/
+
+--USE YourDatabaseName;
+
+-- Find first order, last order, and number of years of sales
+SELECT
+    MIN(order_date) AS First_order,
+    MAX(order_date) AS Last_order,
+    DATEDIFF(YEAR, MIN(order_date), MAX(order_date)) AS Years_of_sales
+FROM fact_sales;
+
+-- Find youngest and oldest customer birthdate and age (using today’s date)
+SELECT
+    MIN(birthdate) AS Oldest_Customer_birthdate,
+    DATEDIFF(YEAR, MIN(birthdate), GETDATE()) AS Oldest_Age,
+    MAX(birthdate) AS Youngest_Customer_birthdate,
+    DATEDIFF(YEAR, MAX(birthdate), GETDATE()) AS Youngest_Age
+FROM dim_customers;

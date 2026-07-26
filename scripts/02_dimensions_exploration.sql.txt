@@ -1,0 +1,20 @@
+/*
+============================================================
+02_dimensions_exploration.sql
+Purpose: Explore dimension tables – customers and products.
+============================================================
+*/
+
+--USE YourDatabaseName;
+
+-- Explore unique countries from customers
+SELECT DISTINCT COUNTRY
+FROM dim_customers;
+
+-- Explore unique categories, subcategories, and product names
+SELECT DISTINCT
+    Category,
+    Subcategory,
+    Product_Name
+FROM dim_products
+ORDER BY 1, 2, 3;

@@ -1,0 +1,38 @@
+/*
+============================================================
+08_cumulative_analysis.sql
+Purpose: Calculate running totals and moving averages over time.
+============================================================
+*/
+
+--USE YourDatabaseName;
+
+-- Monthly running total
+SELECT
+    Months,
+    Total_sales,
+    SUM(Total_sales) OVER(PARTITION BY MONTHS ORDER BY Months) AS Running_total
+FROM (
+    SELECT
+        DATETRUNC(MONTH, Order_date) AS Months,
+        SUM(sales_amount) AS Total_sales
+    FROM fact_sales
+    WHERE DATETRUNC(MONTH, Order_date) IS NOT NULL
+    GROUP BY DATETRUNC(MONTH, Order_date)
+) t;
+
+-- Yearly running total + moving average of price
+SELECT
+    YEARS,
+    Total_sales,
+    SUM(Total_sales) OVER(ORDER BY YEARS) AS Running_total,
+    AVG(AVG_price) OVER(ORDER BY YEARS) AS MOVING_AVG
+FROM (
+    SELECT
+        DATETRUNC(YEAR, Order_date) AS YEARS,
+        SUM(sales_amount) AS Total_sales,
+        AVG(price) AS AVG_price
+    FROM fact_sales
+    WHERE DATETRUNC(YEAR, Order_date) IS NOT NULL
+    GROUP BY DATETRUNC(YEAR, Order_date)
+) t;

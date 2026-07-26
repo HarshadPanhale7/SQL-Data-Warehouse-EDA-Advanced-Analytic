@@ -1,0 +1,69 @@
+/*
+============================================================
+05_magnitude_analysis.sql
+Purpose: Analyse magnitude (size) of various dimensions – customers by country/gender,
+         products by category, revenue per category, etc.
+============================================================
+*/
+
+--USE YourDatabaseName;
+
+-- Total customers by country
+SELECT
+    COUNT(customer_key) AS Total_customers,
+    country
+FROM dim_customers
+GROUP BY Country
+ORDER BY Total_customers DESC;
+
+-- Total customers by gender
+SELECT
+    COUNT(customer_key) AS Total_customers,
+    gender AS Gender
+FROM dim_customers
+GROUP BY gender
+ORDER BY Total_customers DESC;
+
+-- Total products by category
+SELECT
+    COUNT(DISTINCT product_name) AS Total_products,
+    category AS CATEGORY
+FROM dim_products
+GROUP BY category
+ORDER BY Total_products DESC;
+
+-- Average cost per category
+SELECT
+    AVG(cost) AS AVG_COST,
+    category AS CATEGORY
+FROM dim_products
+GROUP BY category
+ORDER BY AVG_COST DESC;
+
+-- Total revenue per category
+SELECT
+    category AS CATEGORY,
+    SUM(sales_amount) AS Total_Revenue
+FROM dim_products AS dp
+JOIN fact_sales AS fs ON dp.product_key = fs.product_key
+GROUP BY category
+ORDER BY Total_Revenue DESC;
+
+-- Total revenue per customer (using window function)
+SELECT
+    DISTINCT(customer_id) AS Customers,
+    First_Name,
+    Last_Name,
+    SUM(sales_amount) OVER(PARTITION BY customer_id) AS Total_Revenue
+FROM dim_customers AS cus
+JOIN fact_sales AS fs ON cus.customer_key = fs.customer_key
+ORDER BY Total_Revenue DESC;
+
+-- Distribution of items sold across countries
+SELECT
+    country,
+    SUM(quantity) AS Total_Quantity
+FROM dim_customers AS cus
+JOIN fact_sales AS fs ON cus.customer_key = fs.customer_key
+GROUP BY country
+ORDER BY Total_Quantity DESC;

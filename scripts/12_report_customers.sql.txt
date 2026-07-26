@@ -1,0 +1,137 @@
+/*
+============================================================
+12_report_customers.sql
+Purpose: Build a 360° customer report with segmentation and KPIs.
+         Also creates a view for easy access.
+============================================================
+*/
+
+--USE YourDatabaseName;
+
+-- Step 1: Base query (CTE1) – get core columns
+WITH base_query AS (
+    SELECT
+        c.customer_key,
+        product_key,
+        order_date,
+        sales_amount,
+        quantity,
+        CONCAT(first_name, ' ', last_name) AS Full_name,
+        birthdate,
+        DATEDIFF(YEAR, birthdate, GETDATE()) AS Age,
+        order_number
+    FROM fact_sales AS f
+    LEFT JOIN dim_customers AS c ON f.customer_key = c.customer_key
+),
+-- Step 2: Aggregated customer measures
+second_cte AS (
+    SELECT
+        customer_key,
+        Full_name,
+        Age,
+        COUNT(product_key) AS Total_products,
+        MAX(order_date) AS Last_order_date,
+        DATEDIFF(MONTH, MIN(order_date), MAX(order_date)) AS Lifespan,
+        SUM(sales_amount) AS Total_sales,
+        SUM(quantity) AS Total_quantity_purchased,
+        COUNT(DISTINCT order_number) AS Total_orders
+    FROM base_query
+    GROUP BY customer_key, Full_name, Age
+)
+-- Step 3: Add segmentations and additional KPIs
+SELECT
+    customer_key,
+    Full_name,
+    Age,
+    CASE
+        WHEN Age < 20 THEN 'Below 20'
+        WHEN Age BETWEEN 21 AND 39 THEN '21-39'
+        WHEN Age BETWEEN 40 AND 50 THEN '40-50'
+        ELSE 'ABOVE 50'
+    END AS Age_segmentation,
+    Total_products,
+    Last_order_date,
+    DATEDIFF(MONTH, Last_order_date, GETDATE()) AS RECENCY,
+    Lifespan,
+    Total_sales,
+    CASE
+        WHEN Total_sales > 5000 AND Lifespan >= 12 THEN 'VIP_CUSTOMER'
+        WHEN Total_sales <= 5000 AND Lifespan >= 12 THEN 'REGULAR_CUSTOMER'
+        ELSE 'NEW_CUSTOMER'
+    END AS Customer_segmentation,
+    CASE
+        WHEN Total_orders = 0 THEN 0
+        ELSE Total_sales / Total_orders
+    END AS Average_order_value,
+    CASE
+        WHEN Lifespan = 0 THEN Total_sales
+        ELSE Total_sales / Lifespan
+    END AS Average_monthly_sales,
+    Total_quantity_purchased,
+    Total_orders
+FROM second_cte;
+
+-- Create a view for the customer report
+CREATE VIEW selfmade_customer_report AS
+WITH base_query AS (
+    SELECT
+        c.customer_key,
+        product_key,
+        order_date,
+        sales_amount,
+        quantity,
+        CONCAT(first_name, ' ', last_name) AS Full_name,
+        birthdate,
+        DATEDIFF(YEAR, birthdate, GETDATE()) AS Age,
+        order_number
+    FROM fact_sales AS f
+    LEFT JOIN dim_customers AS c ON f.customer_key = c.customer_key
+),
+second_cte AS (
+    SELECT
+        customer_key,
+        Full_name,
+        Age,
+        COUNT(product_key) AS Total_products,
+        MAX(order_date) AS Last_order_date,
+        DATEDIFF(MONTH, MIN(order_date), MAX(order_date)) AS Lifespan,
+        SUM(sales_amount) AS Total_sales,
+        SUM(quantity) AS Total_quantity_purchased,
+        COUNT(DISTINCT order_number) AS Total_orders
+    FROM base_query
+    GROUP BY customer_key, Full_name, Age
+)
+SELECT
+    customer_key,
+    Full_name,
+    Age,
+    CASE
+        WHEN Age < 20 THEN 'Below 20'
+        WHEN Age BETWEEN 21 AND 39 THEN '21-39'
+        WHEN Age BETWEEN 40 AND 50 THEN '40-50'
+        ELSE 'ABOVE 50'
+    END AS Age_segmentation,
+    Total_products,
+    Last_order_date,
+    DATEDIFF(MONTH, Last_order_date, GETDATE()) AS RECENCY,
+    Lifespan,
+    Total_sales,
+    CASE
+        WHEN Total_sales > 5000 AND Lifespan >= 12 THEN 'VIP_CUSTOMER'
+        WHEN Total_sales <= 5000 AND Lifespan >= 12 THEN 'REGULAR_CUSTOMER'
+        ELSE 'NEW_CUSTOMER'
+    END AS Customer_segmentation,
+    CASE
+        WHEN Total_orders = 0 THEN 0
+        ELSE Total_sales / Total_orders
+    END AS Average_order_value,
+    CASE
+        WHEN Lifespan = 0 THEN Total_sales
+        ELSE Total_sales / Lifespan
+    END AS Average_monthly_sales,
+    Total_quantity_purchased,
+    Total_orders
+FROM second_cte;
+
+-- Test the view
+SELECT * FROM selfmade_customer_report;

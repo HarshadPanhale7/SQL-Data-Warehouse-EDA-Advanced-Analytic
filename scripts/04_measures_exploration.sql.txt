@@ -1,0 +1,51 @@
+/*
+============================================================
+04_measures_exploration.sql
+Purpose: Calculate key business metrics (measures) and generate a summary report.
+============================================================
+*/
+
+--USE YourDatabaseName;
+
+-- Individual measures
+SELECT SUM(sales_amount) AS TOTAL_SALES FROM fact_sales;
+SELECT COUNT(quantity) AS ITEMS_SOLD FROM fact_sales;
+SELECT AVG(price) AS AVG_SELLING_PRICE FROM fact_sales;
+SELECT COUNT(DISTINCT order_number) AS TOTAL_NUMBER_OF_ORDERS FROM fact_sales;
+SELECT COUNT(DISTINCT product_name) AS TOTAL_NUMBER_OF_PRODUCTS FROM dim_products;
+SELECT COUNT(DISTINCT customer_key) AS Total_cus_THAT_PLACED_AN_ORDER FROM fact_sales;
+
+-- Combined report (all key metrics in one table)
+SELECT 'TOTAL_SALES' AS MEASURE_NAME,
+       SUM(sales_amount) AS MEASURE_VALUE
+FROM fact_sales
+
+UNION ALL
+
+SELECT 'Total_items_sold',
+       COUNT(quantity)
+FROM fact_sales
+
+UNION ALL
+
+SELECT 'AVG_SELLING_PRICE',
+       AVG(price)
+FROM fact_sales
+
+UNION ALL
+
+SELECT 'TOTAL_NUMBER_OF_ORDERS',
+       COUNT(DISTINCT order_number)
+FROM fact_sales
+
+UNION ALL
+
+SELECT 'TOTAL_NUMBER_OF_PRODUCTS',
+       COUNT(DISTINCT product_name)
+FROM dim_products
+
+UNION ALL
+
+SELECT 'CUSTOMER_PLACED_ORDER',
+       COUNT(DISTINCT customer_key)
+FROM fact_sales;

@@ -1,0 +1,81 @@
+/*
+============================================================
+06_ranking_analysis.sql
+Purpose: Rank products and customers using ROW_NUMBER().
+         Find top/bottom performers.
+============================================================
+*/
+
+--USE YourDatabaseName;
+
+-- Top 5 products by revenue (using ROW_NUMBER)
+SELECT *
+FROM (
+    SELECT
+        product_name,
+        SUM(sales_amount) AS Total_sales,
+        ROW_NUMBER() OVER(ORDER BY SUM(sales_amount) DESC) AS Rankings
+    FROM dim_products AS dp
+    LEFT JOIN fact_sales AS fs ON dp.product_key = fs.product_key
+    GROUP BY product_name
+) t
+WHERE Rankings < 6;
+
+-- Alternative: TOP 5
+SELECT TOP 5
+    product_name,
+    SUM(sales_amount) AS Total_sales
+FROM fact_sales AS fs
+LEFT JOIN dim_products AS dp ON dp.product_key = fs.product_key
+GROUP BY product_name
+ORDER BY SUM(sales_amount) DESC;
+
+-- Bottom 5 products by revenue
+SELECT *
+FROM (
+    SELECT
+        product_name,
+        SUM(sales_amount) AS Total_sales,
+        ROW_NUMBER() OVER(ORDER BY SUM(sales_amount)) AS Rankings
+    FROM fact_sales AS fs
+    LEFT JOIN dim_products AS dp ON dp.product_key = fs.product_key
+    GROUP BY product_name
+) t
+WHERE Rankings < 6;
+
+-- Alternative: TOP 5 ascending
+SELECT TOP 5
+    product_name,
+    SUM(sales_amount) AS Total_sales
+FROM fact_sales AS fs
+LEFT JOIN dim_products AS dp ON dp.product_key = fs.product_key
+GROUP BY product_name
+ORDER BY SUM(sales_amount);
+
+-- Top 20 customers by revenue
+SELECT *
+FROM (
+    SELECT
+        customer_id,
+        first_name,
+        SUM(sales_amount) AS Total_sales,
+        ROW_NUMBER() OVER(ORDER BY SUM(sales_amount) DESC) AS Rankings
+    FROM fact_sales AS fs
+    LEFT JOIN dim_customers AS ds ON fs.customer_key = ds.customer_key
+    GROUP BY customer_id, first_name
+) t
+WHERE Rankings <= 20;
+
+-- 3 customers with fewest orders
+SELECT *
+FROM (
+    SELECT
+        customer_id,
+        first_name,
+        COUNT(DISTINCT order_number) AS Total_orders_count,
+        ROW_NUMBER() OVER(ORDER BY COUNT(DISTINCT order_number)) AS Rankings
+    FROM fact_sales AS fs
+    LEFT JOIN dim_customers AS ds ON fs.customer_key = ds.customer_key
+    GROUP BY customer_id, first_name
+) t
+WHERE Rankings <= 3;
